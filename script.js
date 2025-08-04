@@ -1,6 +1,7 @@
 // Data structure to hold tissue and gene information
 const tissueData = {
     "SI": [],
+    "Liver": [],
     "MC38 tumor": []
 };
 
@@ -44,6 +45,28 @@ function loadTissueData() {
         "Ccl19_Ccr7.png", "Ccl17_Ccr8.png"
     ];
     
+    const liverFiles = [
+        "Flt3_Flt3l.png", "Tgfbr2_Tgfb3.png", "Tgfbr2_Tgfb2.png", "Tgfbr2_Tgfb1.png", "Tgfbr1_Tgfb3.png",
+        "Tgfbr1_Tgfb2.png", "Tgfbr1_Tgfb1.png", "Ifngr2_Ifng.png", "Ifngr1_Ifng.png", "Il18rap_Il18.png",
+        "Il18r1_Il18.png", "Il17rc_Il17f.png", "Il17rc_Il17a.png", "Il17ra_Il17f.png", "Il17ra_Il17a.png",
+        "Il15ra_Il15.png", "Il10rb_Il10.png", "Il10ra_Il10.png", "Il7r_Il7.png", "Il6st_Il6.png", "Il6ra_Il6.png",
+        "Il4ra_Il4.png", "Il2rg_Il15.png", "Il2rg_Il7.png", "Il2rg_Il4.png", "Il2rg_Il2.png", "Il2rb_Il15.png",
+        "Il2rb_Il2.png", "Il2ra_Il2.png", "Flt3l_Flt3.png", "Tgfb3_Tgfbr2.png", "Tgfb3_Tgfbr1.png",
+        "Tgfb2_Tgfbr2.png", "Tgfb2_Tgfbr1.png", "Tgfb1_Tgfbr2.png", "Tgfb1_Tgfbr1.png", "Ifng_Ifngr2.png",
+        "Ifng_Ifngr1.png", "Il18_Il18rap.png", "Il18_Il18r1.png", "Il17f_Il17rc.png", "Il17f_Il17ra.png",
+        "Il17a_Il17rc.png", "Il17a_Il17ra.png", "Il15_Il2rg.png", "Il15_Il2rb.png", "Il15_Il15ra.png",
+        "Il10_Il10rb.png", "Il10_Il10ra.png", "Il7_Il2rg.png", "Il7_Il7r.png", "Il6_Il6st.png", "Il6_Il6ra.png",
+        "Il4_Il2rg.png", "Il4_Il4ra.png", "Il2_Il2rg.png", "Il2_Il2rb.png", "Il2_Il2ra.png", "Xcr1_Xcl1.png",
+        "Cxcr6_Cxcl16.png", "Cxcr5_Cxcl13.png", "Cxcr4_Cxcl12.png", "Cxcr3_Cxcl10.png", "Cxcr3_Cxcl9.png",
+        "Cx3cr1_Cx3cl1.png", "Ccr9_Ccl25.png", "Ccr8_Ccl17.png", "Ccr8_Ccl8.png", "Ccr8_Ccl4.png", "Ccr8_Ccl1.png",
+        "Ccr7_Ccl19.png", "Ccr6_Ccl20.png", "Ccr5_Ccl8.png", "Ccr5_Ccl5.png", "Ccr5_Ccl4.png", "Ccr5_Ccl3.png",
+        "Ccr4_Ccl22.png", "Ccr4_Ccl17.png", "Ccr4_Ccl5.png", "Ccr4_Ccl3.png", "Ccr4_Ccl2.png", "Ccr2_Ccl12.png",
+        "Ccr2_Ccl8.png", "Ccr2_Ccl7.png", "Ccr2_Ccl2.png", "Ccr1_Ccl7.png", "Ccr1_Ccl5.png", "Ccr1_Ccl4.png",
+        "Ccr1_Ccl3.png", "Xcl1_Xcr1.png", "Cxcl16_Cxcr6.png", "Cxcl13_Cxcr5.png", "Cxcl12_Cxcr4.png",
+        "Cxcl10_Cxcr3.png", "Cxcl9_Cxcr3.png", "Cx3cl1_Cx3cr1.png", "Ccl25_Ccr9.png", "Ccl22_Ccr4.png",
+        "Ccl20_Ccr6.png", "Ccl19_Ccr7.png"
+    ];
+    
     const mc38Files = [
         "Xcr1_Xcl1.png", "Xcl1_Xcr1.png", "Tgfbr2_Tgfb3.png", "Tgfbr2_Tgfb2.png", "Tgfbr2_Tgfb1.png",
         "Tgfbr1_Tgfb3.png", "Tgfbr1_Tgfb2.png", "Tgfbr1_Tgfb1.png", "Tgfb3_Tgfbr2.png", "Tgfb3_Tgfbr1.png",
@@ -68,6 +91,7 @@ function loadTissueData() {
     
     // Process files to extract unique genes
     tissueData["SI"] = processFiles(siFiles);
+    tissueData["Liver"] = processFiles(liverFiles);
     tissueData["MC38 tumor"] = processFiles(mc38Files);
     
     // Populate tissue dropdown
