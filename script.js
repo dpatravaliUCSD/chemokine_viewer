@@ -16,8 +16,8 @@ function setupEventListeners() {
     const gene2Select = document.getElementById('gene2-select');
     
     tissueSelect.addEventListener('change', handleTissueChange);
-    gene1Select.addEventListener('change', handleGeneChange);
-    gene2Select.addEventListener('change', handleGeneChange);
+    gene1Select.addEventListener('change', handleGene1Change);
+    gene2Select.addEventListener('change', handleGene2Change);
 }
 
 function loadTissueData() {
@@ -122,22 +122,17 @@ function handleTissueChange() {
     if (selectedTissue) {
         const genes = tissueData[selectedTissue].genes;
         
-        // Populate gene dropdowns
+        // Populate only gene1 dropdown
         genes.forEach(gene => {
             const option1 = document.createElement('option');
             option1.value = gene;
             option1.textContent = gene;
             gene1Select.appendChild(option1);
-            
-            const option2 = document.createElement('option');
-            option2.value = gene;
-            option2.textContent = gene;
-            gene2Select.appendChild(option2);
         });
         
-        // Enable gene selects
+        // Enable gene1 select, keep gene2 disabled until gene1 is selected
         gene1Select.disabled = false;
-        gene2Select.disabled = false;
+        gene2Select.disabled = true;
     } else {
         // Disable gene selects
         gene1Select.disabled = true;
@@ -145,7 +140,50 @@ function handleTissueChange() {
     }
 }
 
-function handleGeneChange() {
+function handleGene1Change() {
+    const tissueSelect = document.getElementById('tissue-select');
+    const gene1Select = document.getElementById('gene1-select');
+    const gene2Select = document.getElementById('gene2-select');
+    
+    const selectedTissue = tissueSelect.value;
+    const selectedGene1 = gene1Select.value;
+    
+    // Clear gene2 selection and image
+    gene2Select.innerHTML = '<option value="">Select second gene...</option>';
+    clearImage();
+    
+    if (selectedTissue && selectedGene1) {
+        const combinations = tissueData[selectedTissue].combinations;
+        
+        // Find all genes that can pair with selectedGene1
+        const availableGene2s = new Set();
+        combinations.forEach(combo => {
+            if (combo.gene1 === selectedGene1) {
+                availableGene2s.add(combo.gene2);
+            }
+            if (combo.gene2 === selectedGene1) {
+                availableGene2s.add(combo.gene1);
+            }
+        });
+        
+        // Populate gene2 dropdown with available partners
+        const sortedGenes = Array.from(availableGene2s).sort();
+        sortedGenes.forEach(gene => {
+            const option = document.createElement('option');
+            option.value = gene;
+            option.textContent = gene;
+            gene2Select.appendChild(option);
+        });
+        
+        // Enable gene2 select
+        gene2Select.disabled = false;
+    } else {
+        // Disable gene2 select
+        gene2Select.disabled = true;
+    }
+}
+
+function handleGene2Change() {
     const tissueSelect = document.getElementById('tissue-select');
     const gene1Select = document.getElementById('gene1-select');
     const gene2Select = document.getElementById('gene2-select');
