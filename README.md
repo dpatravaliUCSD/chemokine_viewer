@@ -4,7 +4,7 @@ A web-based tool for visualizing spatial gene expression patterns across differe
 
 ## Features
 
-- Interactive tissue selection (Liver, MC38 tumor)
+- Interactive tissue selection (SI, MC38 tumor)
 - Gene pair selection with dynamic dropdowns
 - Real-time image display of spatial expression plots
 - Responsive design for desktop and mobile
