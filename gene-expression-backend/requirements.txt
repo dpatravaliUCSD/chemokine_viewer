@@ -1,0 +1,9 @@
+flask
+gunicorn
+scanpy
+anndata
+matplotlib
+numpy
+scipy
+pandas
+gdown
