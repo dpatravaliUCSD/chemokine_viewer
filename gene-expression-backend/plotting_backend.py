@@ -83,19 +83,86 @@ def get_interacting_partners():
 def plot_histogram_for_pair(adata, tissue, gene1, gene2):
     os.makedirs('figures/temp', exist_ok=True)
 
-    sub = adata[adata.obs['batch'] == tissue]
-    x = sub.obsm['X_spatial'][:, 0]
-    y = sub.obsm['X_spatial'][:, 1]
+    # First filter by tissue type, then find all batches within that tissue
+    tissue_adata = adata[adata.obs['tissue_type'] == tissue]
+    
+    if tissue_adata.n_obs == 0:
+        print(f"❌ No data found for tissue type '{tissue}'")
+        available_tissues = sorted(adata.obs['tissue_type'].unique())
+        print(f"Available tissue types: {available_tissues}")
+        # Create empty plot with error message
+        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+        ax.text(0.5, 0.5, f"No data found for tissue: {tissue}\nAvailable: {', '.join(available_tissues)}", 
+                ha='center', va='center', transform=ax.transAxes, fontsize=12)
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.set_title(f"Error: Tissue '{tissue}' not found")
+        return fig
 
-    fig, axs = plt.subplots(2, 1, figsize=(8, 10), squeeze=False)
-    axs = axs.flatten()
-
-    for i, gene in enumerate([gene1, gene2]):
-        w = sub[:, gene].X.A.flatten() if hasattr(sub[:, gene].X, 'A') else sub[:, gene].X.flatten()
-        axs[i].hist2d(x, y, weights=w, bins=100, cmap='viridis')
-        axs[i].set_title(f"{gene} in {tissue}")
-        axs[i].set_xlabel("X")
-        axs[i].set_ylabel("Y")
-
-    fig.tight_layout()
+    # Find all batches within this tissue type
+    if 'batch' in tissue_adata.obs.columns:
+        tissue_batches = sorted(tissue_adata.obs['batch'].unique())
+    else:
+        # If no batch column, treat the entire tissue as one batch
+        tissue_batches = [tissue]
+        tissue_adata.obs['batch'] = tissue
+    
+    n_samples = len(tissue_batches)
+    print(f"🧬 Found {n_samples} {tissue} samples: {tissue_batches}")
+    
+    # Create figure with subplots: 2 rows (gene1, gene2) x n_samples columns
+    fig, axes = plt.subplots(2, n_samples, figsize=(4*n_samples, 8), squeeze=False)
+    
+    # If only one sample, axes needs to be reshaped
+    if n_samples == 1:
+        axes = axes.reshape(2, 1)
+    
+    for col, batch_name in enumerate(tissue_batches):
+        # Filter data for this specific batch within the tissue
+        sub = tissue_adata[tissue_adata.obs['batch'] == batch_name]
+        print(f"🧬 {batch_name}: {sub.n_obs} cells")
+        
+        if sub.n_obs == 0:
+            for row in range(2):
+                axes[row, col].text(0.5, 0.5, f"No cells in\n{batch_name}", 
+                                   ha='center', va='center', transform=axes[row, col].transAxes)
+                axes[row, col].set_title(f"Error: {batch_name}")
+            continue
+        
+        # Get spatial coordinates
+        x = sub.obsm['X_spatial'][:, 0]
+        y = sub.obsm['X_spatial'][:, 1]
+        
+        # Plot each gene
+        for row, gene in enumerate([gene1, gene2]):
+            ax = axes[row, col]
+            
+            if gene not in sub.var.index:
+                print(f"❌ Gene '{gene}' not found in {batch_name}")
+                ax.text(0.5, 0.5, f"Gene '{gene}'\nnot found", ha='center', va='center', transform=ax.transAxes)
+                ax.set_title(f"{gene} in {batch_name}")
+                continue
+                
+            # Handle sparse matrix properly
+            gene_expr = sub[:, gene].X
+            if hasattr(gene_expr, 'A'):
+                w = gene_expr.A.flatten()
+            elif hasattr(gene_expr, 'toarray'):
+                w = gene_expr.toarray().flatten()
+            else:
+                w = np.array(gene_expr).flatten()
+                
+            print(f"🧬 {gene} in {batch_name}: min={w.min():.3f}, max={w.max():.3f}, mean={w.mean():.3f}, non-zero={np.sum(w > 0)}")
+            
+            # Create 2D histogram
+            im = ax.hist2d(x, y, weights=w, bins=100, cmap='viridis')
+            ax.set_title(f"{gene} in {batch_name}")
+            ax.set_xlabel("Spatial X")
+            ax.set_ylabel("Spatial Y")
+            
+            # Add colorbar for each subplot
+            plt.colorbar(im[3], ax=ax, label="Expression")
+    
+    # Adjust layout to prevent overlap
+    plt.tight_layout()
     return fig
