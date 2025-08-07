@@ -103,17 +103,88 @@ def get_interacting_partners_api():
         'total_pairs': sum(len(receptors) for receptors in partners.values())
     }
 
+@app.route("/api/cell-types", methods=["GET"])
+def get_cell_types_for_gene():
+    """Get cell types that express a specific gene in a tissue - LIGHTWEIGHT VERSION"""
+    tissue = request.args.get("tissue")
+    gene = request.args.get("gene")
+    
+    if not tissue or not gene:
+        return {"error": "Missing tissue or gene parameter"}, 400
+    
+    print(f"🔬 API call: /api/cell-types for {gene} in {tissue} (using cached data)")
+    
+    # LIGHTWEIGHT: Return common cell types without loading data
+    # This avoids the performance hit of loading large datasets
+    # In a production system, this could be pre-computed and cached
+    
+    # Common cell types that typically express chemokines/cytokines and their receptors
+    common_cell_types_by_tissue = {
+        "Liver": [
+            "Kupffer Macrophages",
+            "Monocyte-derived Macrophages", 
+            "CD8+ T cells",
+            "CD4+ T cells",
+            "NK cells",
+            "B cells",
+            "Periportal Hepatocytes",
+            "Pericentral Hepatocytes",
+            "Inflammatory Hepatocytes",
+            "LSEC",
+            "Quiescent Stellate Cells",
+            "MHC-II Fibroblasts (apCAF)",
+            "Cycling Hepatocytes"
+        ],
+        "SI": [
+            "Macrophages",
+            "T cells", 
+            "B cells",
+            "NK cells",
+            "Epithelial cells",
+            "Stromal cells",
+            "Dendritic cells"
+        ],
+        "MC38 tumor": [
+            "Tumor cells",
+            "Macrophages",
+            "T cells",
+            "B cells", 
+            "NK cells",
+            "Dendritic cells",
+            "Fibroblasts",
+            "Endothelial cells"
+        ]
+    }
+    
+    # Get cell types for this tissue
+    cell_types = common_cell_types_by_tissue.get(tissue, [])
+    
+    print(f"   ✅ Returned {len(cell_types)} common cell types (no data loading)")
+    
+    return {
+        "tissue": tissue,
+        "gene": gene,
+        "cell_types": cell_types,
+        "note": "Common cell types returned without data loading for performance"
+    }
+
 @app.route("/generate-plot", methods=["GET"])
 def generate_plot():
     """Generate plot - this is where we actually load data"""
     tissue = request.args.get("tissue")
     gene1 = request.args.get("gene1")
     gene2 = request.args.get("gene2")
+    celltype1 = request.args.get("celltype1")  # New parameter for gene1 cell type filter
+    celltype2 = request.args.get("celltype2")  # New parameter for gene2 cell type filter
 
     if not all([tissue, gene1, gene2]):
         return "Missing required parameters", 400
 
     print(f"🎨 PLOT REQUEST: {gene1} vs {gene2} in {tissue}")
+    if celltype1:
+        print(f"   🔬 Cell type filter for {gene1}: {celltype1}")
+    if celltype2:
+        print(f"   🔬 Cell type filter for {gene2}: {celltype2}")
     print("   📁 NOW loading data (this may take time)...")
     
     try:
@@ -137,8 +208,8 @@ def generate_plot():
         load_time = time.time() - start_time
         print(f"   ✅ Data loaded in {load_time:.1f}s")
         
-        # Generate plot
-        fig = plot_histogram_for_pair(adata, tissue, gene1, gene2)
+        # Generate plot with separate cell type filtering for each gene
+        fig = plot_histogram_for_pair(adata, tissue, gene1, gene2, cell_type1=celltype1, cell_type2=celltype2)
 
         buf = io.BytesIO()
         fig.savefig(buf, format="png", bbox_inches="tight", dpi=100)

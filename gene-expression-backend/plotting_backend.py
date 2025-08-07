@@ -1,15 +1,14 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-import scanpy as sc
 
 def load_adata(path):
     """Load and return the AnnData object from a given path"""
+    import scanpy as sc
     return sc.read(path)
 
 
 def get_interacting_partners():
-    return {
+    
+    interacting_partners = {
         "Ccl1": ["Ccr8"],
         "Ccl2": ["Ccr2", "Ccr4"],
         "Ccl3": ["Ccr1", "Ccr5", "Ccr4"],
@@ -78,91 +77,127 @@ def get_interacting_partners():
         "Tgfbr2": ["Tgfb1", "Tgfb2", "Tgfb3"],
         "Flt3": ["Flt3l"]
     }
+    return interacting_partners
 
 
-def plot_histogram_for_pair(adata, tissue, gene1, gene2):
+def plot_histogram_for_pair(adata, tissue, gene1, gene2, cell_type1=None, cell_type2=None, cell_type_column="cell_types"):
+    """
+    Plots 2D histograms of spatial gene expression for two genes in a given tissue,
+    with separate optional cell type filters for each gene.
+    
+    Parameters:
+    - adata: AnnData object
+    - tissue: tissue type to filter by
+    - gene1, gene2: genes to plot
+    - cell_type1: optional cell type filter for gene1 (if None, uses all cells)
+    - cell_type2: optional cell type filter for gene2 (if None, uses all cells)  
+    - cell_type_column: column name in adata.obs containing cell type information
+    """
+    # Import heavy modules only when this function is called
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
     os.makedirs('figures/temp', exist_ok=True)
 
-    # First filter by tissue type, then find all batches within that tissue
+    # 1) Filter by tissue
     tissue_adata = adata[adata.obs['tissue_type'] == tissue]
-    
     if tissue_adata.n_obs == 0:
         print(f"❌ No data found for tissue type '{tissue}'")
         available_tissues = sorted(adata.obs['tissue_type'].unique())
-        print(f"Available tissue types: {available_tissues}")
-        # Create empty plot with error message
         fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-        ax.text(0.5, 0.5, f"No data found for tissue: {tissue}\nAvailable: {', '.join(available_tissues)}", 
+        ax.text(0.5, 0.5, f"No data for tissue: {tissue}\nAvailable: {', '.join(map(str, available_tissues))}",
                 ha='center', va='center', transform=ax.transAxes, fontsize=12)
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
         ax.set_title(f"Error: Tissue '{tissue}' not found")
         return fig
 
-    # Find all batches within this tissue type
+    # 2) Batches within this tissue slice
     if 'batch' in tissue_adata.obs.columns:
         tissue_batches = sorted(tissue_adata.obs['batch'].unique())
     else:
-        # If no batch column, treat the entire tissue as one batch
         tissue_batches = [tissue]
         tissue_adata.obs['batch'] = tissue
-    
+
     n_samples = len(tissue_batches)
     print(f"🧬 Found {n_samples} {tissue} samples: {tissue_batches}")
-    
-    # Create figure with subplots: 2 rows (gene1, gene2) x n_samples columns
+
     fig, axes = plt.subplots(2, n_samples, figsize=(4*n_samples, 8), squeeze=False)
-    
-    # If only one sample, axes needs to be reshaped
     if n_samples == 1:
         axes = axes.reshape(2, 1)
-    
-    for col, batch_name in enumerate(tissue_batches):
-        # Filter data for this specific batch within the tissue
-        sub = tissue_adata[tissue_adata.obs['batch'] == batch_name]
-        print(f"🧬 {batch_name}: {sub.n_obs} cells")
-        
-        if sub.n_obs == 0:
+
+    for col_idx, batch_name in enumerate(tissue_batches):
+        batch_adata = tissue_adata[tissue_adata.obs['batch'] == batch_name]
+        print(f"🧬 {batch_name}: {batch_adata.n_obs} cells")
+
+        if batch_adata.n_obs == 0:
             for row in range(2):
-                axes[row, col].text(0.5, 0.5, f"No cells in\n{batch_name}", 
-                                   ha='center', va='center', transform=axes[row, col].transAxes)
-                axes[row, col].set_title(f"Error: {batch_name}")
+                axes[row, col_idx].text(0.5, 0.5, f"No cells in\n{batch_name}",
+                                        ha='center', va='center', transform=axes[row, col_idx].transAxes)
+                axes[row, col_idx].set_title(f"Error: {batch_name}")
             continue
-        
-        # Get spatial coordinates
-        x = sub.obsm['X_spatial'][:, 0]
-        y = sub.obsm['X_spatial'][:, 1]
-        
-        # Plot each gene
-        for row, gene in enumerate([gene1, gene2]):
-            ax = axes[row, col]
+
+        for row, (gene, cell_type_filter) in enumerate([(gene1, cell_type1), (gene2, cell_type2)]):
+            ax = axes[row, col_idx]
             
-            if gene not in sub.var.index:
+            # Start with the batch data
+            gene_adata = batch_adata.copy()
+            
+            # Apply cell type filter if specified
+            if cell_type_filter is not None:
+                if cell_type_column not in gene_adata.obs.columns:
+                    ax.text(0.5, 0.5, f"Column '{cell_type_column}'\nnot found", 
+                            ha='center', va='center', transform=ax.transAxes)
+                    ax.set_title(f"Error: {gene} in {batch_name}")
+                    continue
+                
+                # Handle categorical dtypes safely
+                col = gene_adata.obs[cell_type_column]
+                if hasattr(col, "cat"):
+                    valid_types = list(col.cat.categories)
+                else:
+                    valid_types = sorted(map(str, col.unique()))
+                
+                # Filter by cell type
+                gene_adata = gene_adata[col.astype(str) == str(cell_type_filter)]
+                
+                if gene_adata.n_obs == 0:
+                    print(f"❌ No cells for {batch_name} with cell type '{cell_type_filter}' expressing {gene}")
+                    ax.text(0.5, 0.5, f"No {cell_type_filter} cells\nexpressing {gene}", 
+                            ha='center', va='center', transform=ax.transAxes)
+                    ax.set_title(f"{gene} in {batch_name}")
+                    continue
+
+            if gene not in gene_adata.var.index:
                 print(f"❌ Gene '{gene}' not found in {batch_name}")
                 ax.text(0.5, 0.5, f"Gene '{gene}'\nnot found", ha='center', va='center', transform=ax.transAxes)
                 ax.set_title(f"{gene} in {batch_name}")
                 continue
-                
-            # Handle sparse matrix properly
-            gene_expr = sub[:, gene].X
+
+            # Get spatial coordinates and expression data
+            x = gene_adata.obsm['X_spatial'][:, 0]
+            y = gene_adata.obsm['X_spatial'][:, 1]
+            
+            gene_expr = gene_adata[:, gene].X
             if hasattr(gene_expr, 'A'):
                 w = gene_expr.A.flatten()
             elif hasattr(gene_expr, 'toarray'):
                 w = gene_expr.toarray().flatten()
             else:
                 w = np.array(gene_expr).flatten()
-                
-            print(f"🧬 {gene} in {batch_name}: min={w.min():.3f}, max={w.max():.3f}, mean={w.mean():.3f}, non-zero={np.sum(w > 0)}")
-            
-            # Create 2D histogram
-            im = ax.hist2d(x, y, weights=w, bins=100, cmap='viridis')
+
+            print(f"🧬 {gene} in {batch_name}" + (f" ({cell_type_filter})" if cell_type_filter else "") + 
+                  f": min={w.min():.3f}, max={w.max():.3f}, mean={w.mean():.3f}, non-zero={np.sum(w > 0)}, cells={len(w)}")
+
+            # Create histogram
+            im = ax.hist2d(x, y, weights=w, bins=100, cmap='inferno')
             ax.set_title(f"{gene} in {batch_name}")
-            ax.set_xlabel("Spatial X")
-            ax.set_ylabel("Spatial Y")
-            
-            # Add colorbar for each subplot
+            ax.set_xlabel(""); ax.set_ylabel("")
+            ax.set_xticks([]); ax.set_yticks([])
             plt.colorbar(im[3], ax=ax, label="Expression")
-    
-    # Adjust layout to prevent overlap
+
     plt.tight_layout()
+    plt.subplots_adjust(left=0.04, bottom=0.08, right=0.96, top=0.95)
+    fig.text(0.5, 0.02, 'Spatial X', ha='center', va='center', fontsize=14, fontweight='bold')
+    fig.text(0.02, 0.5, 'Spatial Y', ha='center', va='center', fontsize=14, fontweight='bold', rotation=90)
     return fig
+
