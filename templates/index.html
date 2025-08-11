@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spatial Gene Expression Viewer</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <div class="container">
@@ -22,16 +22,33 @@
             </div>
             
             <div class="control-group">
-                <label for="gene1-select">Gene 1:</label>
+                <label for="gene1-select">Chemokine/Cytokine:</label>
                 <select id="gene1-select" disabled>
-                    <option value="">Select first gene...</option>
+                    <option value="">Select chemokine or cytokine...</option>
                 </select>
             </div>
             
             <div class="control-group">
-                <label for="gene2-select">Gene 2:</label>
+                <label for="gene2-select">Interacting Partner:</label>
                 <select id="gene2-select" disabled>
-                    <option value="">Select second gene...</option>
+                    <option value="">Select interacting partner...</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- New controls row for cell-type filters -->
+        <div class="controls">
+            <div class="control-group">
+                <label for="celltype1-select">Cell type (Gene 1):</label>
+                <select id="celltype1-select" disabled>
+                    <option value="">Select cell type (optional)...</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="celltype2-select">Cell type (Gene 2):</label>
+                <select id="celltype2-select" disabled>
+                    <option value="">Select cell type (optional)...</option>
                 </select>
             </div>
         </div>
@@ -43,6 +60,6 @@
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html> 
