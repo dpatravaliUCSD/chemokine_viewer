@@ -2,6 +2,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import scanpy as sc
+from typing import Tuple, Union
+from cache_manager import histogram_cache_key, load_json, save_json, cache_path_for
+import io
 
 def load_adata(path):
     """Load and return the AnnData object from a given path"""
@@ -166,3 +169,36 @@ def plot_histogram_for_pair(adata, tissue, gene1, gene2):
     # Adjust layout to prevent overlap
     plt.tight_layout()
     return fig
+
+
+def plot_histogram_for_pair_cached(adata, tissue, gene1, gene2, cell_type1: str = None, cell_type2: str = None, bins: int = 100) -> Tuple[bool, Union[str, bytes]]:
+    """
+    Cached wrapper for plot_histogram_for_pair.
+    Returns (is_cached, data) where data is either a file path (if cached) or PNG bytes (if newly generated).
+    """
+    key = histogram_cache_key(
+        tissue=tissue,
+        gene_x=gene1,
+        gene_y=gene2,
+        cell_type1=cell_type1 or "",
+        cell_type2=cell_type2 or "",
+        bins=bins,
+        version="v1"
+    )
+    meta = load_json(key)
+    if meta and os.path.exists(meta.get("png_path", "")):
+        return True, meta["png_path"]
+
+    fig = plot_histogram_for_pair(adata, tissue, gene1, gene2)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", bbox_inches="tight", dpi=100)
+    plt.close(fig)
+    buf.seek(0)
+
+    png_path = cache_path_for(key).replace(".json", ".png")
+    os.makedirs(os.path.dirname(png_path), exist_ok=True)
+    with open(png_path, "wb") as f:
+        f.write(buf.getvalue())
+
+    save_json(key, {"png_path": png_path, "tissue": tissue, "gene1": gene1, "gene2": gene2, "bins": bins})
+    return False, buf.getvalue()

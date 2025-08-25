@@ -1,0 +1,6 @@
+{
+    "Liver":  { "default": "xenium_liver.zarr" },
+    "MC38":   { "default": "xenium_MC38.zarr" },
+    "SI":     { "default": "xenium_SI.zarr" }
+  }
+  

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spatial Gene Expression Viewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Spatial Gene Expression Viewer</h1>
+            <p>Select a tissue and two genes to view their spatial expression pattern</p>
+        </header>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="tissue-select">Tissue:</label>
+                <select id="tissue-select">
+                    <option value="">Select a tissue...</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="gene1-select">Gene 1:</label>
+                <select id="gene1-select" disabled>
+                    <option value="">Select first gene...</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="gene2-select">Gene 2:</label>
+                <select id="gene2-select" disabled>
+                    <option value="">Select second gene...</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="image-container" id="image-container">
+            <div class="placeholder">
+                <p>Select tissue and genes to view expression plots</p>
+            </div>
+        </div>
+    </div>
+    
+    <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 
