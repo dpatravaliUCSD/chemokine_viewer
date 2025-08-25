@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: chemokine-viewer
+    env: python
+    rootDir: gene-expression-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -b 0.0.0.0:$PORT app_dynamic:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: USE_S3
+        value: "true"
+      - key: S3_BUCKET
+        value: goldrath-chemokine-viewer
+      - key: DATA_MANIFEST
+        value: datasets_manifest.json
+      - key: AWS_DEFAULT_REGION
+        value: us-east-2
+      - key: MPLBACKEND
+        value: Agg
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
