@@ -113,12 +113,12 @@ def plot_histogram_for_pair(adata, tissue, gene1, gene2):
     n_samples = len(tissue_batches)
     print(f"🧬 Found {n_samples} {tissue} samples: {tissue_batches}")
     
-    # Create figure with subplots: 2 rows (gene1, gene2) x n_samples columns
-    fig, axes = plt.subplots(2, n_samples, figsize=(4*n_samples, 8), squeeze=False)
+    # Create figure with subplots: 3 rows (gene1, gene2, overlay) x n_samples columns
+    fig, axes = plt.subplots(3, n_samples, figsize=(4*n_samples, 12), squeeze=False)
     
     # If only one sample, axes needs to be reshaped
     if n_samples == 1:
-        axes = axes.reshape(2, 1)
+        axes = axes.reshape(3, 1)
     
     for col, batch_name in enumerate(tissue_batches):
         # Filter data for this specific batch within the tissue
@@ -126,7 +126,7 @@ def plot_histogram_for_pair(adata, tissue, gene1, gene2):
         print(f"🧬 {batch_name}: {sub.n_obs} cells")
         
         if sub.n_obs == 0:
-            for row in range(2):
+            for row in range(3):
                 axes[row, col].text(0.5, 0.5, f"No cells in\n{batch_name}", 
                                    ha='center', va='center', transform=axes[row, col].transAxes)
                 axes[row, col].set_title(f"Error: {batch_name}")
@@ -136,7 +136,16 @@ def plot_histogram_for_pair(adata, tissue, gene1, gene2):
         x = sub.obsm['X_spatial'][:, 0]
         y = sub.obsm['X_spatial'][:, 1]
         
-        # Plot each gene
+        # Prepare expression arrays for both genes (handle sparse)
+        def _expr_for(g):
+            gX = sub[:, g].X
+            if hasattr(gX, 'A'):
+                return gX.A.flatten()
+            if hasattr(gX, 'toarray'):
+                return gX.toarray().flatten()
+            return np.array(gX).flatten()
+        
+        # Plot each gene (rows 0 and 1) using histogram heatmaps
         for row, gene in enumerate([gene1, gene2]):
             ax = axes[row, col]
             
@@ -147,25 +156,53 @@ def plot_histogram_for_pair(adata, tissue, gene1, gene2):
                 continue
                 
             # Handle sparse matrix properly
-            gene_expr = sub[:, gene].X
-            if hasattr(gene_expr, 'A'):
-                w = gene_expr.A.flatten()
-            elif hasattr(gene_expr, 'toarray'):
-                w = gene_expr.toarray().flatten()
-            else:
-                w = np.array(gene_expr).flatten()
-                
+            w = _expr_for(gene)
             print(f"🧬 {gene} in {batch_name}: min={w.min():.3f}, max={w.max():.3f}, mean={w.mean():.3f}, non-zero={np.sum(w > 0)}")
             
             # Create 2D histogram
-            im = ax.hist2d(x, y, weights=w, bins=100, cmap='viridis')
+            im = ax.hist2d(x, y, weights=w, bins=100, cmap='inferno')
             ax.set_title(f"{gene} in {batch_name}")
             ax.set_xlabel("Spatial X")
             ax.set_ylabel("Spatial Y")
             
             # Add colorbar for each subplot
             plt.colorbar(im[3], ax=ax, label="Expression")
-    
+        
+        # Row 2: overlay categorical scatter (gene1-only, gene2-only, both)
+        ax_overlay = axes[2, col]
+        # Black background for overlay row for better contrast
+        ax_overlay.set_facecolor("#000000")
+        if (gene1 in sub.var.index) and (gene2 in sub.var.index):
+            w1 = _expr_for(gene1)
+            w2 = _expr_for(gene2)
+            expr1 = w1 > 0
+            expr2 = w2 > 0
+            both = expr1 & expr2
+            only1 = expr1 & (~expr2)
+            only2 = expr2 & (~expr1)
+
+            # Plot order: gene2-only (purple), gene1-only (yellow), both (orange) on top
+            if np.any(only2):
+                ax_overlay.scatter(x[only2], y[only2], s=1, c="#800080", alpha=0.8, label=f"{gene2} only")
+            if np.any(only1):
+                ax_overlay.scatter(x[only1], y[only1], s=1, c="#FFD700", alpha=0.8, label=f"{gene1} only")
+            if np.any(both):
+                ax_overlay.scatter(x[both], y[both], s=1, c="#FFA500", alpha=0.95, label="both")
+            ax_overlay.set_title(f"Overlay in {batch_name}", color='white')
+            ax_overlay.set_xlabel("Spatial X", color='white')
+            ax_overlay.set_ylabel("Spatial Y", color='white')
+            ax_overlay.tick_params(axis='both', colors='white')
+            # Compact legend with dark frame
+            leg = ax_overlay.legend(loc='upper right', fontsize=8, frameon=True)
+            if leg is not None:
+                leg.get_frame().set_facecolor('#000000')
+                leg.get_frame().set_edgecolor('white')
+                for t in leg.get_texts():
+                    t.set_color('white')
+        else:
+            ax_overlay.text(0.5, 0.5, "One or both genes not found", ha='center', va='center', transform=ax_overlay.transAxes, color='white')
+            ax_overlay.set_title(f"Overlay in {batch_name}", color='white')
+
     # Adjust layout to prevent overlap
     plt.tight_layout()
     return fig
@@ -183,7 +220,7 @@ def plot_histogram_for_pair_cached(adata, tissue, gene1, gene2, cell_type1: str 
         cell_type1=cell_type1 or "",
         cell_type2=cell_type2 or "",
         bins=bins,
-        version="v1"
+        version="v4"
     )
     meta = load_json(key)
     if meta and os.path.exists(meta.get("png_path", "")):
