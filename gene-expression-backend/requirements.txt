@@ -11,6 +11,7 @@ gdown
 numcodecs
 fsspec
 s3fs
+boto3
 
 # optional but nice if you use it:
 # flask-cors

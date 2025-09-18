@@ -1,6 +1,5 @@
 {
-    "Liver":  { "default": "xenium_liver.zarr" },
-    "MC38":   { "default": "xenium_MC38.zarr" },
-    "SI":     { "default": "xenium_SI.zarr" }
-  }
-  
+    "Liver": { "default": "datasets/xenium_liver.h5ad" },
+    "MC38":  { "default": "datasets/xenium_mc38.h5ad" },
+    "SI":    { "default": "datasets/xenium_SI.h5ad" }
+}

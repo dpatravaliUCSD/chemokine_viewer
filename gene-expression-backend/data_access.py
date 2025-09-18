@@ -23,6 +23,10 @@ def load_dataset_for(tissue: str):
     key = dataset_key_for(tissue)
     if key.endswith(".zarr"):
         return read_zarr(key)
+    if key.endswith(".h5ad"):
+        import anndata as ad
+        # Load .h5ad fully into memory to avoid backed view slicing limitations
+        return ad.read_h5ad(key)
     if HAVE_H5AD:
         return read_h5ad_backed(key)
     raise RuntimeError(

@@ -1,0 +1,6 @@
+{
+  "Liver": { "default": "/home/dpatravali/Desktop/chemokine_viewer/data/xenium_liver.h5ad" },
+  "MC38":  { "default": "/home/dpatravali/Desktop/chemokine_viewer/data/xenium_mc38.h5ad" },
+  "SI":    { "default": "/home/dpatravali/Desktop/chemokine_viewer/data/xenium_SI.h5ad" }
+}
+  

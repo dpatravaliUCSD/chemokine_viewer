@@ -86,8 +86,25 @@ def get_interacting_partners():
 def plot_histogram_for_pair(adata, tissue, gene1, gene2):
     os.makedirs('figures/temp', exist_ok=True)
 
+    # If using backed .h5ad, fully materialize to memory before any slicing to avoid view-of-view errors
+    try:
+        if getattr(adata, "isbacked", False):
+            if hasattr(adata, "to_memory"):
+                adata = adata.to_memory()
+            else:
+                # Fallback: force a full copy via a no-op slice
+                adata = adata[:, :].copy()
+    except Exception:
+        pass
+
     # First filter by tissue type, then find all batches within that tissue
     tissue_adata = adata[adata.obs['tissue_type'] == tissue]
+    # If using backed .h5ad, avoid repeated view indexing by materializing after first slice
+    try:
+        if getattr(tissue_adata, "isbacked", False):
+            tissue_adata = tissue_adata.copy()
+    except Exception:
+        pass
     
     if tissue_adata.n_obs == 0:
         print(f"❌ No data found for tissue type '{tissue}'")
@@ -154,7 +171,7 @@ def plot_histogram_for_pair(adata, tissue, gene1, gene2):
                 ax.text(0.5, 0.5, f"Gene '{gene}'\nnot found", ha='center', va='center', transform=ax.transAxes)
                 ax.set_title(f"{gene} in {batch_name}")
                 continue
-                
+            
             # Handle sparse matrix properly
             w = _expr_for(gene)
             print(f"🧬 {gene} in {batch_name}: min={w.min():.3f}, max={w.max():.3f}, mean={w.mean():.3f}, non-zero={np.sum(w > 0)}")
